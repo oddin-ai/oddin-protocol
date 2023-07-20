@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
 // Uncomment this line to use console.log
@@ -13,7 +13,7 @@ contract Lock {
     constructor(uint _unlockTime) payable {
         require(
             block.timestamp < _unlockTime,
-            "Unlock time should be in the future"
+            'Unlock time should be in the future'
         );
 
         unlockTime = _unlockTime;
