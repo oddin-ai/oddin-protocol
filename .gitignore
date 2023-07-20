@@ -1,4 +1,9 @@
-node_modules
+# Node artifact files
+node_modules/
+dist/
+
+# Log files
+*.log
 
 node_modules
 .env
@@ -10,4 +15,10 @@ typechain-types
 # Hardhat files
 cache
 artifacts
+deployments
+gas-report.txt
+
+# Settings
+.vscode
+.openzeppelin/
 

@@ -2,7 +2,7 @@
   "name": "oddin-protocol",
   "version": "1.0.0",
   "description": "",
-  "main": "index.ts",
+  "main": "scripts/deploy.ts",
   "scripts": {
     "test": "jest"
   },
