@@ -21,20 +21,20 @@ contract OddinToken is
     ERC20VotesUpgradeable
 {
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
+    constructor(uint256 initialSupply) {
         _disableInitializers();
+
+        mint(msg.sender, initialSupply * 10 ** decimals());
     }
 
     function initialize() public initializer {
-        __ERC20_init('oddin Token', 'ODDN');
+        __ERC20_init('OddinToken', 'ODDN');
         __ERC20Burnable_init();
         __ERC20Snapshot_init();
         __Ownable_init();
         __Pausable_init();
-        __ERC20Permit_init('oddin Token');
+        __ERC20Permit_init('OddinToken');
         __ERC20Votes_init();
-
-        mint(msg.sender, 10000000000 * 10 ** decimals());
     }
 
     function snapshot() public onlyOwner {
