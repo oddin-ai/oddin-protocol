@@ -2,7 +2,6 @@ import  { assert, expect } from "chai";
 import { network, getNamedAccounts, deployments, ethers } from "hardhat";
 import { developmentChains, INITIAL_SUPPLY } from "../../helper-hardhat-config";
 import { OddinToken } from "../../typechain-types";
-//import { Address } from "hardhat-deploy/dist/types";
 
 !developmentChains.includes(network.name)
     ? describe.skip
