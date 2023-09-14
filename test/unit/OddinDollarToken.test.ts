@@ -9,7 +9,7 @@ import { OddinDollarToken } from "../../typechain-types";
     : describe("OddinDollarToken Unit Test", function () {
           //Multipler is used to make reading the math easier because of the 18 decimal points
           const multiplier = 10 ** 18
-          let OddinDollarToken : OddinDollarToken;
+          let oddinDollarToken : OddinDollarToken;
           let deployer : any;
           let user1 : any;
           beforeEach(async function () {
@@ -19,7 +19,7 @@ import { OddinDollarToken } from "../../typechain-types";
               //const signer = await ethers.getSigner(deployer.toString())
             [deployer, user1] = await ethers.getSigners();
               //  const OddinDollarToken = await ethers.deployContract("OddinDollarToken");
-              OddinDollarToken = await ethers.deployContract("OddinDollarToken", [DOLLAR_SUPPLY],deployer)   // ?????????????????????????????????????????????????????????
+              oddinDollarToken = await ethers.deployContract("OddinDollarToken", [DOLLAR_SUPPLY],deployer)   // ?????????????????????????????????????????????????????????
               //OddinDollarToken = await ethers.getContract("OddinDollarToken", deployer)
             
               
@@ -32,26 +32,26 @@ import { OddinDollarToken } from "../../typechain-types";
               
           })
           it("was deployed", async () => {
-            console.log("OddinDollarToken address:", OddinDollarToken.target);
-              assert(OddinDollarToken.target)
+            console.log("OddinDollarToken address:", oddinDollarToken.target);
+              assert(oddinDollarToken.target)
           })
           describe("constructor", () => {
               it("Should have correct INITIAL_SUPPLY of token ", async () => {
-                  const totalSupply = await OddinDollarToken.totalSupply()
+                  const totalSupply = await oddinDollarToken.totalSupply()
                   console.log("totalSupply:", totalSupply);
                   assert.equal(totalSupply.toString(), ethers.parseEther(DOLLAR_SUPPLY).toString())
               })
               it("initializes the token with the correct name and symbol ", async () => {                
-                const name = (await OddinDollarToken.name()).toString()
+                const name = (await oddinDollarToken.name()).toString()
                 console.log("name:", name);
                 assert.equal(name, "OddinDollarToken")
 
-                const symbol = (await OddinDollarToken.symbol()).toString()
+                const symbol = (await oddinDollarToken.symbol()).toString()
                 console.log("symbol:", symbol);
                 assert.equal(symbol, "dODDN")
               })
               it("initializes the token with the correct owner ", async () => {
-                const owner = (await OddinDollarToken.owner()).toString()
+                const owner = (await oddinDollarToken.owner()).toString()
                 console.log("owner:", owner);
                 console.log("deployer:", deployer);
                 assert.equal(owner, deployer.address)
@@ -62,14 +62,14 @@ import { OddinDollarToken } from "../../typechain-types";
                   const tokensToSend = ethers.parseEther("10")
                   console.log("user1:", user1);
                   console.log("tokensToSend:", tokensToSend);
-                  await OddinDollarToken.transfer(user1, tokensToSend)
-                  const balance = await OddinDollarToken.balanceOf(user1)
+                  await oddinDollarToken.transfer(user1, tokensToSend)
+                  const balance = await oddinDollarToken.balanceOf(user1)
                   console.log("balance:", balance);
                   expect(balance).to.equal(tokensToSend)
               })
               it("emits an transfer event, when an transfer occurs", async () => {
-                  await expect(OddinDollarToken.transfer(user1, (10 * multiplier).toString())).to.emit(
-                    OddinDollarToken,
+                  await expect(oddinDollarToken.transfer(user1, (10 * multiplier).toString())).to.emit(
+                    oddinDollarToken,
                       "Transfer"
                   )
               })
@@ -84,20 +84,20 @@ import { OddinDollarToken } from "../../typechain-types";
                 const tokensToMint = ethers.parseEther("10")
                 console.log("user1:", user1);
                 console.log("tokensToMint:", tokensToMint);
-                await OddinDollarToken.mint(user1, tokensToMint)
-                const balance = await OddinDollarToken.balanceOf(user1)
+                await oddinDollarToken.mint(user1, tokensToMint)
+                const balance = await oddinDollarToken.balanceOf(user1)
                 console.log("balance:", balance);
                 expect(balance).to.equal(tokensToMint)
             })
             it("emits an mint event, when an mint occurs", async () => {
-                await expect(OddinDollarToken.mint(user1, (10 * multiplier).toString())).to.emit(
-                    OddinDollarToken,
+                await expect(oddinDollarToken.mint(user1, (10 * multiplier).toString())).to.emit(
+                    oddinDollarToken,
                     "Transfer"
                 )
             })
             it("Should be able to burn tokens successfully to an address", async () => {
               const tokensToBurn = ethers.parseEther("10")
-              let balancebefore = await OddinDollarToken.balanceOf(deployer)
+              let balancebefore = await oddinDollarToken.balanceOf(deployer)
               await oddinDollarToken.approve(deployer.address, tokensToBurn)
               await oddinDollarToken.burnFrom(deployer,tokensToBurn)
               let balanceAfter = await oddinDollarToken.balanceOf(deployer)
@@ -127,15 +127,15 @@ import { OddinDollarToken } from "../../typechain-types";
                   ).to.be.revertedWith("ERC20: insufficient allowance")
               })
               it("emits an approval event, when an approval occurs", async () => {
-                  await expect(OddinDollarToken.approve(user1, amount)).to.emit(OddinDollarToken, "Approval")
+                  await expect(oddinDollarToken.approve(user1, amount)).to.emit(oddinDollarToken, "Approval")
               })
               it("the allowance being set is accurate", async () => {
-                  await OddinDollarToken.approve(user1, amount)
-                  const allowance = await OddinDollarToken.allowance(deployer, user1)
+                  await oddinDollarToken.approve(user1, amount)
+                  const allowance = await oddinDollarToken.allowance(deployer, user1)
                   assert.equal(allowance.toString(), amount)
               })
               it("won't allow a user to go over the allowance", async () => {
-                  await OddinDollarToken.approve(user1, amount)
+                  await oddinDollarToken.approve(user1, amount)
                   await expect(
                       playerToken.transferFrom(deployer, user1, (40 * multiplier).toString())
                   ).to.be.revertedWith("ERC20: insufficient allowance")
