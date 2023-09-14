@@ -6,8 +6,8 @@ import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 
-contract OddinToken is ERC20, ERC20Burnable, Pausable, Ownable {
-    constructor(uint256 initialSupply) ERC20('OddinToken', 'ODDN') {
+contract OddinDollarToken is ERC20, ERC20Burnable, Pausable, Ownable {
+    constructor(uint256 initialSupply) ERC20('OddinDollarToken', 'dODDN') {
         _mint(msg.sender, initialSupply * 10 ** decimals());
     }
 

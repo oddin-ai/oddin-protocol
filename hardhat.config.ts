@@ -1,7 +1,8 @@
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ethers";
-import "dotenv/config"
-import "@typechain/hardhat"
+import "dotenv/config";
+import "@typechain/hardhat";
+import "hardhat-deploy";
 
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "";
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY || "";
@@ -18,12 +19,19 @@ module.exports = {
     },
     localhost: {
       url: "http://127.0.0.1:8545",
-      accounts: [TESTING_PRIVATE_KEY],
       chainId: 31337
     }
   },
   etherscan: {
     apiKey: ETHERSCAN_API_KEY
+  },
+  namedAccounts: {
+    deployer: {
+      default: 0,
+    },
+    user1: {
+      default: 1,
+    },
   },
   solidity: "0.8.19",
 };

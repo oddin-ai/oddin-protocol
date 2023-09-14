@@ -1,16 +1,16 @@
-import '@nomicfoundation/hardhat-ethers';
-import { ethers } from 'hardhat';
+import { HardhatRuntimeEnvironment } from "hardhat/types";
+import {  developmentChains,  DOLLAR_SUPPLY} from "../helper-hardhat-config";
+import verify from "../utils/verify";
 
-async function main() {
-    const oddinDollarTokenFactory = await ethers.getContractFactory("OddinUSDToken");
-    const OddinDollarToken = await oddinDollarTokenFactory.deploy();
-    await OddinDollarToken.waitForDeployment();
-    console.log(`Contract OddinToken deployed at: ${OddinDollarToken.target}`);
+module.exports = async (hre : HardhatRuntimeEnvironment) => {
+    const oddinDollarTokenFactory = await hre.ethers.getContractFactory("OddinDollarToken");
+    const oddinDollarToken = await oddinDollarTokenFactory.deploy(DOLLAR_SUPPLY);
+    await oddinDollarToken.waitForDeployment();
+    console.log("OddinDollarToken deployed to:", oddinDollarToken.target);
+
+    if (!developmentChains.includes(hre.network.name) && process.env.ETHERSCAN_API_KEY) {
+        await verify(oddinDollarToken.target.toString(), [DOLLAR_SUPPLY])
+    }
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main().then(() => process.exit(0)).catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+module.exports.tags = ["all", "token"]
