@@ -1,4 +1,3 @@
-//write tests for Staker contract
 import { expect, assert } from "chai";
 import { network, getNamedAccounts, deployments, ethers } from "hardhat";
 import { developmentChains, REWARD_RATE , INITIAL_SUPPLY} from "../../helper-hardhat-config";
@@ -7,8 +6,6 @@ import { OddinToken, Staker } from "../../typechain-types";
 !developmentChains.includes(network.name)
     ? describe.skip
     : describe("Staker Unit Test", function () {
-        //Multipler is used to make reading the math easier because of the 18 decimal points
-        const multiplier = 10 ** 18
         let staker: Staker;
         let token : OddinToken;
         let deployer: any;

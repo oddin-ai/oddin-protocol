@@ -38,7 +38,7 @@ const config: HardhatUserConfig = {
     },
     user1: {
       default: 1,
-    },
+    }
   },
   solidity: "0.8.19",
 };

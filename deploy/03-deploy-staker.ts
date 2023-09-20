@@ -9,7 +9,7 @@ module.exports = async (hre : HardhatRuntimeEnvironment) => {
     const stakerFactory = await hre.ethers.getContractFactory("Staker");
     const staker = await stakerFactory.deploy(reward,ODDIN_TOKEN);
     await staker.waitForDeployment();
-    console.log(`OddinDollarToken deployed to:", ${staker.target}, with reward rate: ${reward}`);
+    console.log(`Staker deployed to:", ${staker.target}, with reward rate: ${reward}`);
 
     if (!developmentChains.includes(hre.network.name) && process.env.ETHERSCAN_API_KEY) {
         await verify(staker.target.toString(), [])
