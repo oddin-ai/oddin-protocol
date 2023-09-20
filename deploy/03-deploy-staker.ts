@@ -5,7 +5,7 @@ import { ethers } from "hardhat";
 
 
 module.exports = async (hre : HardhatRuntimeEnvironment) => {
-    const reward: bigint = BigInt(ethers.parseEther(REWARD_RATE));
+    const reward = ethers.parseEther(REWARD_RATE);
     const stakerFactory = await hre.ethers.getContractFactory("Staker");
     const staker = await stakerFactory.deploy(reward,ODDIN_TOKEN);
     await staker.waitForDeployment();
