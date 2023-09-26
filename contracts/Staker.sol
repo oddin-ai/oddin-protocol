@@ -2,12 +2,16 @@
 pragma solidity ^0.8.9;
 
 import {OddinToken} from './oddinToken.sol';
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
 contract Staker {
     struct Delegator {
         uint256 balance;
         uint256 timestamp;
+    }
+
+    struct ChannelRewards {
+        uint256 rewardRate;
+        uint256 endTimestamp;
     }
 
     constructor(uint256 _rewardRatePerSecond, address _token) {
@@ -18,8 +22,9 @@ contract Staker {
     }
 
     mapping(address => mapping(address => Delegator)) public delegators;
-    mapping(address => uint256) public balances;
-    mapping(address => uint256) public delegatorsTotals;
+    mapping(address => uint256) public delegatorBalances;
+    mapping(address => uint256) public channelBalances;
+    mapping(address => ChannelRewards) public channelRewards;
 
     address public owner;
     OddinToken public oddinToken;
@@ -45,7 +50,7 @@ contract Staker {
         _;
     }
 
-    function updateRewardRate(uint256 newRewardRate) public ownerOnly {
+    function updateGlobalRewardRate(uint256 newRewardRate) public ownerOnly {
         rewardRatePerSecond = newRewardRate;
     }
 
@@ -62,17 +67,15 @@ contract Staker {
     }
 
     function balanceOf(address delegator) public view returns (uint256) {
-        return balances[delegator];
+        return delegatorBalances[delegator];
     }
 
     function getTotalStaked() public view returns (uint256) {
         return totalStaked;
     }
 
-    function getDelegatorTotal(
-        address delegator
-    ) public view returns (uint256) {
-        return delegatorsTotals[delegator];
+    function balanceOfChannel(address delegator) public view returns (uint256) {
+        return channelBalances[delegator];
     }
 
     function balanceForChannel(
@@ -82,15 +85,76 @@ contract Staker {
         return delegators[delegator][channel].balance;
     }
 
+    function calculateBpts(uint256 a, uint256 b) public pure returns (uint256) {
+        require(a > 0, 'a must be greater than 0');
+        require(b > 0, 'b must be greater than 0');
+
+        uint256 res = b % a;
+        uint256 div = b / a;
+        require(div > 0, 'div must be greater than 0');
+        uint256 bps = (a * 100) / b;
+        if (res == 0 && div > 0) {
+            return bps;
+        } else if (res > a / 2) {
+            bps = a / (b + res);
+        } else {
+            bps = a / b + a;
+        }
+        return bps;
+    }
+
+    function calculateRewardsForChannel(
+        address channel
+    ) public view returns (uint256) {
+        require(totalStaked > 0, 'No stakers yet!');
+        require(channelBalances[channel] > 0, 'No stakers for this channel!');
+        uint256 timeframe = block.timestamp -
+            delegators[msg.sender][channel].timestamp +
+            1;
+        uint256 globalrewards = (timeframe *
+            rewardRatePerSecond *
+            delegators[msg.sender][channel].balance) / totalStaked;
+        if (channelRewards[channel].rewardRate == 0) {
+            return globalrewards;
+        }
+        uint256 channelRewardTimeframe = (channelRewards[channel].endTimestamp >
+            block.timestamp)
+            ? block.timestamp - delegators[msg.sender][channel].timestamp + 1
+            : channelRewards[channel].endTimestamp -
+                delegators[msg.sender][channel].timestamp;
+        uint256 channelAdditionalRewards = (channelRewards[channel].rewardRate >
+            0)
+            ? (channelRewardTimeframe *
+                channelRewards[channel].rewardRate *
+                delegators[msg.sender][channel].balance) /
+                channelBalances[channel]
+            : 0;
+        return globalrewards + channelAdditionalRewards;
+    }
+
+    function setRewardRateForChannel(
+        address channel,
+        uint256 amount
+    ) public ownerOnly notPaused {
+        channelRewards[channel].rewardRate = amount;
+    }
+
+    function setRewardDuration(
+        address channel,
+        uint256 duration
+    ) public ownerOnly notPaused {
+        channelRewards[channel].endTimestamp = block.timestamp + duration;
+    }
+
     function stakeFor(
         address delegator,
         uint256 amount
     ) public payable notPaused {
         require(amount > 0, 'You need to stake more than 0');
         oddinToken.transferFrom(msg.sender, address(this), amount);
-        balances[msg.sender] = balances[msg.sender] + amount;
+        delegatorBalances[msg.sender] = delegatorBalances[msg.sender] + amount;
         delegators[msg.sender][delegator] = Delegator(amount, block.timestamp);
-        delegatorsTotals[delegator] = delegatorsTotals[delegator] + amount;
+        channelBalances[delegator] = channelBalances[delegator] + amount;
         totalStaked = totalStaked + amount;
         emit Stake(delegator, amount, block.timestamp);
     }
@@ -108,10 +172,12 @@ contract Staker {
                 delegators[msg.sender][delegatorTarget].timestamp) *
                 rewardRatePerSecond);
         delegators[msg.sender][delegatorTarget].balance = 0;
-        delegatorsTotals[delegatorTarget] =
-            delegatorsTotals[delegatorTarget] -
+        channelBalances[delegatorTarget] =
+            channelBalances[delegatorTarget] -
             individualBalance;
-        balances[msg.sender] = balances[msg.sender] - individualBalance;
+        delegatorBalances[msg.sender] =
+            delegatorBalances[msg.sender] -
+            individualBalance;
         totalStaked = totalStaked - individualBalance;
         oddinToken.transfer(msg.sender, indBalanceRewards);
 
@@ -142,24 +208,24 @@ contract Staker {
             fromStaked = amount;
         }
         delegators[msg.sender][delegetorTarget].balance -= fromStaked;
-        delegatorsTotals[delegetorTarget] =
-            delegatorsTotals[delegetorTarget] -
+        channelBalances[delegetorTarget] =
+            channelBalances[delegetorTarget] -
             fromStaked;
-        balances[msg.sender] = balances[msg.sender] - fromStaked;
+        delegatorBalances[msg.sender] =
+            delegatorBalances[msg.sender] -
+            fromStaked;
         totalStaked = totalStaked - fromStaked;
         oddinToken.transfer(msg.sender, fromStaked + accumulatedRewards);
     }
 
-    function claimRewards(address delegatorTarget) public notPaused {
+    function claimRewards(address channel) public notPaused {
         //notCompleted
         require(
-            delegators[msg.sender][delegatorTarget].balance > 0,
+            delegators[msg.sender][channel].balance > 0,
             'You have no balance to withdraw!'
         );
-        uint256 indBalanceRewards = ((block.timestamp -
-            delegators[msg.sender][delegatorTarget].timestamp) *
-            rewardRatePerSecond);
-        delegators[msg.sender][delegatorTarget].timestamp = block.timestamp;
-        oddinToken.transfer(msg.sender, indBalanceRewards);
+        uint256 accumulatedRewards = calculateRewardsForChannel(channel);
+        delegators[msg.sender][channel].timestamp = block.timestamp;
+        oddinToken.transfer(msg.sender, accumulatedRewards);
     }
 }

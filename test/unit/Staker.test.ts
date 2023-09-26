@@ -1,4 +1,3 @@
-//write tests for Staker contract
 import { expect, assert } from "chai";
 import { network, getNamedAccounts, deployments, ethers } from "hardhat";
 import { developmentChains, REWARD_RATE , INITIAL_SUPPLY} from "../../helper-hardhat-config";
@@ -7,14 +6,13 @@ import { OddinToken, Staker } from "../../typechain-types";
 !developmentChains.includes(network.name)
     ? describe.skip
     : describe("Staker Unit Test", function () {
-        //Multipler is used to make reading the math easier because of the 18 decimal points
-        const multiplier = 10 ** 18
         let staker: Staker;
         let token : OddinToken;
         let deployer: any;
         let user1: any;
+        let user2: any;
         this.beforeAll(async function () {
-            [deployer, user1] = await ethers.getSigners();
+            [deployer, user1, user2] = await ethers.getSigners();
             token = await ethers.deployContract("OddinToken", [INITIAL_SUPPLY], deployer)
             staker = await ethers.deployContract("Staker", [BigInt(ethers.parseEther(REWARD_RATE)),token.target], deployer)
             
@@ -96,7 +94,7 @@ import { OddinToken, Staker } from "../../typechain-types";
                 console.log("balanceOfContract:", balanceOfContract);
                 const deployerBalance = await staker.balanceOf(deployer.address)
                 console.log("deployerBalance:", deployerBalance);
-                const delegatorTotal = await staker.getDelegatorTotal(user1.address);
+                const delegatorTotal = await staker.balanceOfChannel(user1.address);
                 console.log("delegatorTotal:", delegatorTotal);
                 const totalStaked = await staker.totalStaked()
                 console.log("totalStaked:", totalStaked);
@@ -108,13 +106,20 @@ import { OddinToken, Staker } from "../../typechain-types";
                 assert.equal(totalStaked, stakeAmount)
                 assert.equal(delegatorBalance, stakeAmount)
             })
-            it("Should be able to claim rewards successfully to an address", async () => {
+            it("Should be able to claim rewards with additional channel rewards successfully to an address", async () => {
+                const duration = 60 * 60 * 24 * 30
+                const reward = ethers.parseEther("0.0000123")
                 const stakeAmount = ethers.parseEther("1000")
-                //await token.approve(staker.target,stakeAmount)
-                //await staker.connect(deployer).stakeFor(user1.address,stakeAmount)
+                await staker.connect(deployer).setRewardRateForChannel(user1.address,reward)
+                await staker.connect(deployer).setRewardDuration(user1.address,duration)
+                await token.approve(staker.target,stakeAmount)
                 const deployerTokenBalanceBefore = await token.balanceOf(deployer.address)
                 const balanceOfContractBefore = await token.balanceOf(staker.target)
                 console.log("deployerTokenBalanceBefore:", ethers.formatEther(deployerTokenBalanceBefore));
+                const channelBalance = await staker.balanceOfChannel(user1.address);
+                console.log("channelBalance:", ethers.formatEther(channelBalance));
+                const totalStakedInContract = await staker.totalStaked();
+                console.log("totalStakedInContract:", ethers.formatEther(totalStakedInContract));
                 await new Promise(r => setTimeout(r, 2000));
                 await staker.connect(deployer).claimRewards(user1.address);
                 const balanceOfContract = await token.balanceOf(staker.target)
@@ -122,7 +127,36 @@ import { OddinToken, Staker } from "../../typechain-types";
                 const deployerTokenBalanceAfter = await token.balanceOf(deployer.address)
                 console.log("deployerTokenBalanceAfter:", ethers.formatEther(deployerTokenBalanceAfter));
                 console.log("deployerBalance:", deployerBalance);
-                const delegatorTotal = await staker.getDelegatorTotal(user1.address);
+                const delegatorTotal = await staker.balanceOfChannel(user1.address);
+                console.log("delegatorTotal:", delegatorTotal);
+                const totalStaked = await staker.totalStaked()
+                console.log("totalStaked:", totalStaked);
+                const delegatorBalance = await staker.balanceForChannel(deployer.address,user1.address)
+                console.log("delegatorBalance:", delegatorBalance);
+                assert.equal(deployerBalance, stakeAmount)
+                assert.isBelow(Number(balanceOfContract), Number(balanceOfContractBefore + stakeAmount))
+                assert.equal(delegatorTotal, stakeAmount)
+                assert.equal(totalStaked, stakeAmount)
+                assert.equal(delegatorBalance, stakeAmount)
+                assert.isAbove(Number(deployerTokenBalanceAfter.toString()), Number(deployerTokenBalanceBefore.toString()))
+            })
+            it("Should be able to claim rewards successfully to an address", async () => {
+                const stakeAmount = ethers.parseEther("1000")
+                const deployerTokenBalanceBefore = await token.balanceOf(deployer.address)
+                const balanceOfContractBefore = await token.balanceOf(staker.target)
+                console.log("deployerTokenBalanceBefore:", ethers.formatEther(deployerTokenBalanceBefore));
+                const channelBalance = await staker.balanceOfChannel(user1.address);
+                console.log("channelBalance:", ethers.formatEther(channelBalance));
+                const totalStakedInContract = await staker.totalStaked();
+                console.log("totalStakedInContract:", ethers.formatEther(totalStakedInContract));
+                await new Promise(r => setTimeout(r, 2000));
+                await staker.connect(deployer).claimRewards(user1.address);
+                const balanceOfContract = await token.balanceOf(staker.target)
+                const deployerBalance = await staker.balanceOf(deployer.address)
+                const deployerTokenBalanceAfter = await token.balanceOf(deployer.address)
+                console.log("deployerTokenBalanceAfter:", ethers.formatEther(deployerTokenBalanceAfter));
+                console.log("deployerBalance:", deployerBalance);
+                const delegatorTotal = await staker.balanceOfChannel(user1.address);
                 console.log("delegatorTotal:", delegatorTotal);
                 const totalStaked = await staker.totalStaked()
                 console.log("totalStaked:", totalStaked);
@@ -153,7 +187,7 @@ import { OddinToken, Staker } from "../../typechain-types";
                 console.log("user1BalanceAfter:", deployerBalanceAfter);
                 const deployerBalance = await staker.balanceOf(deployer.address)
                 console.log("deployerBalance:", deployerBalance);
-                const delegatorTotal = await staker.getDelegatorTotal(user1.address);
+                const delegatorTotal = await staker.balanceOfChannel(user1.address);
                 console.log("delegatorTotal:", delegatorTotal);
                 const totalStaked = await staker.totalStaked()
                 console.log("totalStaked:", totalStaked);
@@ -182,7 +216,7 @@ import { OddinToken, Staker } from "../../typechain-types";
                 console.log("user1BalanceAfter:", deployerBalanceAfter);
                 const deployerBalance = await staker.balanceOf(deployer.address)
                 console.log("deployerBalance:", deployerBalance);
-                const delegatorTotal = await staker.getDelegatorTotal(user1.address);
+                const delegatorTotal = await staker.balanceOfChannel(user1.address);
                 console.log("delegatorTotal:", delegatorTotal);
                 const totalStaked = await staker.totalStaked()
                 console.log("totalStaked:", totalStaked);
@@ -194,7 +228,38 @@ import { OddinToken, Staker } from "../../typechain-types";
                 assert.equal(totalStaked.toString(), "0")
                 assert.equal(delegatorBalance.toString(), "0")
             })
-            
+            describe("channel rewards", () => {
+                it("set rewards for channel", async () => {
+                    const duration = 60 * 60 * 24 * 30
+                    const reward = ethers.parseEther("0.0000123")
+                    await staker.connect(deployer).setRewardRateForChannel(user1.address,reward)
+                    await staker.connect(deployer).setRewardDuration(user1.address,duration)
+                    const channelReward = (await staker.channelRewards(user1.address)).rewardRate.toString()
+                    const channelRewardDuration = (await staker.channelRewards(user1.address)).endTimestamp.toString()
+                    console.log("channelReward:", channelReward);
+                    assert.equal(channelReward.toString(), ethers.parseEther("0.0000123").toString())
+                })
+                it("Calculate calculateRewardsForChannel correctly", async () => {
+                    const duration = 60 * 60 * 24 * 30
+                    const reward = ethers.parseEther("0.0000123")
+                    const stakeAmount = ethers.parseEther("1000")
+                    await staker.connect(deployer).setRewardRateForChannel(user1.address,reward)
+                    await staker.connect(deployer).setRewardDuration(user1.address,duration)
+                    await token.approve(staker.target,stakeAmount)
+                    await staker.connect(deployer).stakeFor(user1.address,stakeAmount)                   
+                    const stakedOnChannel = await staker.balanceOfChannel(user1.address)
+                    console.log("stakedOnChannel:", stakedOnChannel);
+                    console.log("total staked:", await staker.totalStaked());
+                    await new Promise(r => setTimeout(r, 5000));
+                    const rewardForChannel = await staker.calculateRewardsForChannel(user1.address)
+                    console.log("rewardForChannel:", rewardForChannel);
+                    const channelReward = (await staker.channelRewards(user1.address)).rewardRate.toString()
+                    console.log("channelReward:", channelReward);
+                    const channelRewardDuration = (await staker.channelRewards(user1.address)).endTimestamp.toString()
+                    console.log("channelRewardDuration:", channelRewardDuration);                    
+                    assert.equal(rewardForChannel.toString(), ethers.parseEther("0.0000133").toString())
+                })
+            })
 
         })
     })
